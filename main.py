@@ -7,7 +7,7 @@ Created on Mon Aug 21 04:04:55 2017
 
 Trying fb API
 
-For events with less than 10000 invited
+Find people in common in events statuses.
 
 """
 import json
