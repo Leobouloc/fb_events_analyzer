@@ -17,7 +17,10 @@ except:
     print('WARNING: pandas is missing. to_csv is not usable')
 
 # Read secret app token (can be generated in Facebook API explorer)    
-token = open('my_secret_token.txt').read().strip()
+try:
+    token = open('my_secret_token.txt').read().strip()
+except:
+    raise Exception('Could not read my_secret_token.txt ; you should write your API token to this file in order for the script to work')
 TEMPLATE_URL = 'https://graph.facebook.com/{0}/{1}?limit=10000&access_token=' + token
 
 def gen_file_name(url):
@@ -170,17 +173,17 @@ def size(data_glob):
 if __name__ == '__main__':
     
     # Get all people that were marked as attending for event 1
-    request_1 =  ('1612257909059435', 'attending')
+    query_1 =  ('1612257909059435', 'attending')
     
     # Get all people invited to event 2
-    request_2 =  ('108507509757806', ['attending', 'maybe', 'interested', 'noreply'])
+    query_2 =  ('108507509757806', ['attending', 'maybe', 'interested', 'noreply'])
     
     # Look for the subgroup of people that are in group 1 but not in group 2
     # In our case: the people that attended event 1 but weren't invited to event 2
     relation = '1_in_2'
     
     # Compute
-    result, data_1, data_2, names = find_subgroup(request_1, relation, request_2)
+    result, data_1, data_2, names = find_subgroup(query_1, relation, query_2)
     
     # Count the size of the output group
     print('Number of people in the resulting group:', len(result))
