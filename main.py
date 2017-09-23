@@ -31,6 +31,7 @@ def gen_file_name(url):
         after_access_token = '&' + after_access_token[1]
     else:
         after_access_token = ''
+    print('Hashing from:\n', before_access_token, '\n', after_access_token)
     return str(hash(before_access_token + after_access_token)).replace('-', 'm')
     
 def fetch_url(dir_name, url, force=False):

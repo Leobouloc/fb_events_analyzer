@@ -6,28 +6,36 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/css/bootstrap-theme.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/rainbow/1.2.0/themes/github.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="static/bootstrap_darkly.min.css">
 
         <title>Events analyser</title>
  		<!--<link rel="stylesheet" type="text/css" href="http://www.csszengarden.com/219/219.css?v=8may2013">-->
         <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script src="https://d3js.org/d3.v4.min.js"></script>
+        
+        <script type="text/javascript" src="static/venn.js-0.2.14/venn.js"></script>
         <script type="text/javascript" charset="utf-8">
 
-
+        // Count created events to assign ids 
         var group_counter = {}
-        group_counter['a'] = 2
-        group_counter['b'] = 2
+        group_counter['a'] = 0
+        group_counter['b'] = 0
 
+
+        // 
         function parse_form(event_id) {
-        	console.log('asked for id', id)
+        	console.log('asked for id', event_id)
 
-        	var data = new FormData($(".event_form")[0]);
+        	//var data = new FormData($("#" + event_id + " .event_form")[0]);
+        	//var url = data.get('url')
 
-        	url = data.get('url')
-
-			attending = $($("#"+id).find('.attending')[0]).hasClass('active')
-			maybe = $($("#"+id).find('.maybe')[0]).hasClass('active')
-			interested = $($("#"+id).find('.interested')[0]).hasClass('active')
-			noreply = $($("#"+id).find('.noreply')[0]).hasClass('active')
+        	var url = $('#' + event_id + ' input')[0].value
+        
+			var attending = $($("#"+event_id).find('.attending')[0]).hasClass('active')
+			var maybe = $($("#"+event_id).find('.maybe')[0]).hasClass('active')
+			var interested = $($("#"+event_id).find('.interested')[0]).hasClass('active')
+			var noreply = $($("#"+event_id).find('.noreply')[0]).hasClass('active')
 
 			console.log('attending: ' + attending)
 			console.log('maybe: ' + maybe)
@@ -36,7 +44,7 @@
 
 			is_valid = attending || maybe || interested || noreply
 
-			statuses = []
+			var statuses = []
 			if (attending){
 				statuses.push('attending')
 			}
@@ -50,7 +58,7 @@
 				statuses.push('noreply')
 			}
 
-			res = {'url': url, 'statuses': statuses}
+			var res = {'url': url, 'statuses': statuses}
 			return res
         }
 
@@ -58,28 +66,72 @@
          	var global_res = {}
 
          	// Group A
-         	events = $($('#'+'a')[0]).find('.event')
+         	var events = $($('#'+'a')[0]).find('.event')
          	global_res['a'] = []
          	for (i = 0; i < events.length; i++) { 
-         		id = events[i]['id']
-			    global_res['a'].push(parse_form('event_' + id))
+         		var id = events[i]['id']
+			    global_res['a'].push(parse_form(id))
 			}
-
 
 			// Group B
-         	events = $($('#'+'b')[0]).find('.event')
+         	var events = $($('#'+'b')[0]).find('.event')
          	global_res['b'] = []
          	for (i = 0; i < events.length; i++) { 
-         		id = events[i]['id']	
-			    global_res['b'].push(parse_form('event_' + id))
+         		var id = events[i]['id']	
+			    global_res['b'].push(parse_form(id))
 			}
 
-        	
-        	console.log(global_res)
+			return global_res
+        }
+
+        function display_result(res) {
+
+        	$("#waiting").remove()
+        	$("#results").show()
+
+        	$("#a_size").text(res['a'])
+        	$("#a_and_b_size").text(res['a_and_b'])
+        	$("#b_size").text(res['b'])
+        	console.log(res)
+
+			var sets = [ {sets: ['Group A'], size: res['a']}, 
+			             {sets: ['Group B'], size: res['b']},
+			             {sets: ['Group A','Group B'], size: res['a_and_b']}];
+
+			var chart = venn.VennDiagram()
+			d3.select("#venn").datum(sets).call(chart);
 
         }
 
+        function display_error(res) {
+        	$("#waiting").remove()
+        	$("#error").show()
+        }
 
+        function send_request(){
+        	var url = "api/find_subgroup/"
+
+        	var data = parse_forms()
+
+        	$("#query").remove()
+        	$("#waiting").show()
+
+        	console.log('Sending data:', data)
+
+        	$.ajax({
+			  type: "POST",
+			  url: url,
+			  data: JSON.stringify(data),
+			  success: display_result,
+			  error: display_error,
+			  contentType: "application/json"
+			  //dataType: dataType
+			});
+        }
+
+        function reload_page() {
+        	location.reload(true)
+        }
 
         // delete button on each form 
         // ping events for existing
@@ -118,22 +170,21 @@
 		
         function add_event(group_id) {
 
-			new_id = group_counter[group_id]
+			new_id = group_id + '_' + group_counter[group_id]
 
 			contents = $('#template_event').html();
-			copy = $('<div class="event" id="' + group_id + '_' + new_id + '"></div>');
+			copy = $('<div class="event" id="' + new_id + '"></div>');
 			$('#' + group_id).append(copy.append(contents));
-
-
 			group_counter[group_id] = group_counter[group_id] + 1
 
-
+			// Focus on event
+			$('#' + new_id + ' input')[0].focus();
         }
 
 		$(document).ready(function(){
 
 			
-				$('#run').click(parse_forms)
+				$('#run').click(send_request)
 
 
 				$('#add_event_a').click(function(){
@@ -148,120 +199,107 @@
 
 				enable_dynamic()	
 
+
+
 			});
-
-
-
-
-		/*
-        $(document).ready(function() {      
-
-	        function old_project_id() {
-			    var formData = new FormData($("#existing_project")[0]);
-			    var project_id = formData.get('project_id_old')
-			    if (project_id == ''){
-			    	alert('No project id was specified')
-			    	return project_id
-			    } else {
-			    	return project_id
-			    }
-	        }
-
-			$("#existing_project").submit(function(e) {
-				e.preventDefault();
-			    project_id = old_project_id()
-			    go_to_next(project_id)
-			}); 
-
-		    $('#deleteProject').click(function(e) {
-		    	e.preventDefault();
-		    	var project_id = old_project_id()
-		    	if (project_id != "") {
-			    	var exists_url = '/api/{{ project_type }}/exists/' + project_id
-			    	var delete_url = "{{ delete_project_api_url}}" + project_id
-
-			        confirmation_msg = "Are you sure you want to delete your project?"
-			        if (window.confirm(confirmation_msg)) {
-			       		debugger
-						$.getJSON(exists_url, function(json){
-						    if (json.exists) {
-						    	// Delete project
-
-	  		    				$.getJSON(delete_url)
-
-	  		    				// Remove mention in dropdown list
-	  		    				$("#project_ids option[value='" + project_id + "']").remove();
-	  		    				$("#project_id_old").val('')
-	  		    				alert('Project: '+ project_id + 'was deleted')
-
-						    } else {
-						    	alert("Project id: " + project_id + " could not be found")
-						    }
-						});
-			        }
-		    	}
-		    });
-
-        */
 
         </script>
 
 		<style type="text/css">
-			.active {background-color: red; }
-			.event_form_tab {background-color: grey;}
+			.active {background-color: blue; font-weight:bold; color: #42f4b3}
+			.event_form_tab {background-color: #343a38; padding:100px; border-radius:5px;}
+
+			.cellClick:hover {background_color:blue; font-weight:bolder;  cursor: crosshair; color: #42f4b3;}
+			.active:hover {background_color:blue; font-weight:normal;  cursor: crosshair}
+
+.input--haruki {
+	margin: 4em 1em 1em;
+}
+
+.input__field--haruki {
+	padding: 0.4em 0.25em;
+	width: 100%;
+	background: transparent;
+	color: #24cc8e;
+	font-size: 1.2em;
+}
+
+.input__label-content--haruki {
+	transition: transform 0.3s;
+}
+
+.input__label--haruki::before {
+	top: 0;
+}
+
+.input__label--haruki::after {
+	bottom: 0;
+}
+
+input::-webkit-input-placeholder {
+	color: #aaffe7;
+}
+
+.btn-info {background-color: #343a38}
+
 
 		</style>
     </head>
+
     <body>
+		<!-- EVENT SELECTOR TEMPLATE -->
+		<!-- https://stackoverflow.com/questions/6636622/create-element-from-template-element -->
+		<template id='template_event'>
 
+	      <button type="button" class="close remove" aria-label="Close">
+			  <span aria-hidden="true">&times;</span>
+		  </button>
 
-			<!-- https://stackoverflow.com/questions/6636622/create-element-from-template-element -->
+	      	<table class="table event_form_tab">
+	      		<tbody>
+		      		<tr>
+		      			<td colspan="4" > 
 
-    		<template id='template_event'>
+		      			<!--
+						  <div class="group">
+						    <input type="text" name='url' required="required"/>
+						    <label for="public url">FB event URL</label>
+						    <div class="bar"></div>
+						  </div>
 
-		      <button type="button" class="close remove" aria-label="Close">
-				  <span aria-hidden="true">&times;</span>
-			  </button>
+						  <input type="url" style="box-sizing: border-box; width: 100%;" name="url" placeholder="URL of public facebook event">
+						  -->
+						  	<input type='url' class="input__field input__field--haruki" name="url" placeholder="URL of public facebook event">
+		      				
+		      			
+		      			</td>
+		      		</tr>
+		      		<tr>
+		      			<td class="cellClick attending" width="25%" > Attending </td>
+		      			<td class="cellClick maybe" width="25%"> Maybe </td>
+		      			<td class="cellClick interested" width="25%"> Interested </td>
+		      			<td class="cellClick noreply" width="25%"> Just Invited </td>
+ 		      		</tr>
+		      		</tbody>
+	      	</table>
 
-		      <form class='event_form'>
-		      	<table class="table event_form_tab">
-		      		<tbody>
-			      		<tr>
-			      			<td colspan="4" > 
-			      				<input type="url" style="box-sizing: border-box; width: 100%;" name="url" placeholder="URL of public FB event">
-			      			</td>
-			      		</tr>
-			      		<tr>
-			      			<td class="cellClick attending" width="25%" > Attending </td>
-			      			<td class="cellClick maybe" width="25%"> Maybe </td>
-			      			<td class="cellClick interested" width="25%"> Interested </td>
-			      			<td class="cellClick noreply" width="25%"> Just Invited </td>
-	 		      		</tr>
- 		      		</tbody>
-		      	</table>
-		      </form>
+	    </template>
 
-		    </template>
-
-
-
-
-
-
-
-
-
-
+		
         <div class="jumbotron text-center">
-		  <h1>FB Events compare</h1>
-		  <p>Find common attendees in groups of facebok events</p> 
+		  <h1><a href='.'>FB Events compare</a></h1>
+		  <p>Find common attendees in Facebok events</p> 
+
 		</div>
 
-		<div class="container">
+
+		<!-- QUERY-->
+		<div class="container text-center" id='query'>
+
 		  <div class="row">
 
 		  	<!-- GROUP A -->
-		    <div class="col-sm-6">
+		    <div class="col-sm-6 ">
 		      <h3>Group A</h3>
 		      <p>Define users of group A</p>
 
@@ -271,8 +309,8 @@
 
 
 		      <div class="row">
-		        <a href="#" class="btn btn-info btn-lg" id='add_event_a'>
-          		  <span class="glyphicon glyphicon-plus-sign"></span> Add event to group A
+		        <a href="#" class="btn btn-lg" id='add_event_a'>
+          		  <span class="glyphicon glyphicon-plus-sign"></span> Add fb event to group A
         		</a>
 			  </div>
 			
@@ -288,23 +326,78 @@
 		    </div>
 
 		      <div class="row">
-		        <a href="#" class="btn btn-info btn-lg" id='add_event_b'>
-          		  <span class="glyphicon glyphicon-plus-sign"></span> Add event to group B
+		        <a href="#" class="btn btn-lg" id='add_event_b'>
+          		  <span class="glyphicon glyphicon-plus-sign"></span> Add fb event to group B
         		</a>
 			  </div>
 			
 			</div>
 
+		  </div>
+
+	      <div class="row" style="margin-top:20px">
+		    <div class="col-sm-12">
+		    	<a href="#" class="btn btn-info btn-lg" id='run'>
+          		  <span class="glyphicon glyphicon-plus-sign"></span> Go get'em
+        		</a>			  
+		    </div>
+	      </div>
+	    </div>
+
+	    <div class="container text-center" id='waiting' style="display:none">
+	    	<i class="fa fa-spinner fa-spin" style="font-size:72px;color:##42f4b3"></i>
+	    </div>
+
+	    <div class="container text-center" id='error' style="display:none">
+	    	<h3>Ugh!! There was an error on the server :(</h3>
+	    </div>
+
+	    <div class="container-md-5 text-center" id='results' style="display:none">
+		  <div class="row">
+
+		  	<!-- GROUP A -->
+		    <div class="col-sm-4">
+				<h3>Group A</h3>
+				<p> Size: <span id='a_size'>NO_VALUE</span></p>
+		    </div>
+
+		    <div class="col-sm-4">
+		    	<h3>A and B intersection</h3>
+		    	<p> Size: <span id='a_and_b_size'>NO_VALUE</span></p>
+		    </div>
+
+		    <div class="col-sm-4">
+		    	<h3>Group B</h3>
+		    	<p> Size: <span id='b_size'>NO_VALUE</span></p>
+		    </div>
+	      </div>
+
+	      <div class="row">
+	        <div id='venn'>
+
+	        </div>
+
+		  </div>
+
 		</div>
 
-	  <div class="text-center">
-		<div class="col-sm-12">
-			<button type="button" class="btn" id='run'>Go get'em!</button>
-		</div>
-	  </div>
+	    <div class="container text-center" id='waiting'>
+	    	<div class="row">
+	    		<div class="col-sm-12" style='padding:20px'>
+	    			<a href='.'> Restart </a>
+	    		</div>
+	    	</div>
+	    </div>
 
-	</div>
+
+	<hr>
+	<footer class='text-center'>
+		<a href='https://github.com/Leobouloc/fb_events_analyzer'> See the project on Github </a> | donate: XYZ
+	</footer>
+
     </body>
 </html>
+
+
 
 
