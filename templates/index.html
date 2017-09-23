@@ -1,0 +1,310 @@
+<html>
+    <head>
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/css/bootstrap-theme.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/rainbow/1.2.0/themes/github.css">
+
+        <title>Events analyser</title>
+ 		<!--<link rel="stylesheet" type="text/css" href="http://www.csszengarden.com/219/219.css?v=8may2013">-->
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+        <script type="text/javascript" charset="utf-8">
+
+
+        var group_counter = {}
+        group_counter['a'] = 2
+        group_counter['b'] = 2
+
+        function parse_form(event_id) {
+        	console.log('asked for id', id)
+
+        	var data = new FormData($(".event_form")[0]);
+
+        	url = data.get('url')
+
+			attending = $($("#"+id).find('.attending')[0]).hasClass('active')
+			maybe = $($("#"+id).find('.maybe')[0]).hasClass('active')
+			interested = $($("#"+id).find('.interested')[0]).hasClass('active')
+			noreply = $($("#"+id).find('.noreply')[0]).hasClass('active')
+
+			console.log('attending: ' + attending)
+			console.log('maybe: ' + maybe)
+			console.log('interested: ' + interested)
+			console.log('noreply: ' + noreply)
+
+			is_valid = attending || maybe || interested || noreply
+
+			statuses = []
+			if (attending){
+				statuses.push('attending')
+			}
+			if (maybe){
+				statuses.push('maybe')
+			}
+			if (interested){
+				statuses.push('interested')
+			}
+			if (noreply){
+				statuses.push('noreply')
+			}
+
+			res = {'url': url, 'statuses': statuses}
+			return res
+        }
+
+        function parse_forms() {
+         	var global_res = {}
+
+         	// Group A
+         	events = $($('#'+'a')[0]).find('.event')
+         	global_res['a'] = []
+         	for (i = 0; i < events.length; i++) { 
+         		id = events[i]['id']
+			    global_res['a'].push(parse_form('event_' + id))
+			}
+
+
+			// Group B
+         	events = $($('#'+'b')[0]).find('.event')
+         	global_res['b'] = []
+         	for (i = 0; i < events.length; i++) { 
+         		id = events[i]['id']	
+			    global_res['b'].push(parse_form('event_' + id))
+			}
+
+        	
+        	console.log(global_res)
+
+        }
+
+
+
+        // delete button on each form 
+        // ping events for existing
+        // validate individual forms: 
+        // Go through all forms and validate each one
+        // On click: hide form and show waiting
+        
+        function enable_dynamic(){
+
+			$('body').on('click', '.cellClick', function(e) {
+			    $(this).toggleClass("active");
+			    e.preventDefault();
+			});
+
+
+			$('body').on('click', '.remove', function(e) {
+			    var id = $(this).closest(".event").prop("id");
+			    $("#" + id).remove()
+			    console.log('Trying to remove', id)
+			    e.preventDefault();
+			});
+
+			// Change cell color on click
+		    //$(".cellClick").click(function(){
+		    //    $(this).toggleClass("active");
+		    //});
+
+		    // Delete div on cross click
+		    // $('.remove').click(function(){
+		    //	var id = $(this).closest(".event").prop("id");
+		    //	$("#" + id).remove()
+		    //	console.log('Trying to remove', id)
+        	//});
+
+        }
+		
+        function add_event(group_id) {
+
+			new_id = group_counter[group_id]
+
+			contents = $('#template_event').html();
+			copy = $('<div class="event" id="' + group_id + '_' + new_id + '"></div>');
+			$('#' + group_id).append(copy.append(contents));
+
+
+			group_counter[group_id] = group_counter[group_id] + 1
+
+
+        }
+
+		$(document).ready(function(){
+
+			
+				$('#run').click(parse_forms)
+
+
+				$('#add_event_a').click(function(){
+					add_event('a')	
+					// ENABLE DYNAMIC BEHAVIOR			
+				})
+
+				$('#add_event_b').click(function(){
+					add_event('b')	
+					// ENABLE DYNAMIC BEHAVIOR			
+				})
+
+				enable_dynamic()	
+
+			});
+
+
+
+
+		/*
+        $(document).ready(function() {      
+
+	        function old_project_id() {
+			    var formData = new FormData($("#existing_project")[0]);
+			    var project_id = formData.get('project_id_old')
+			    if (project_id == ''){
+			    	alert('No project id was specified')
+			    	return project_id
+			    } else {
+			    	return project_id
+			    }
+	        }
+
+			$("#existing_project").submit(function(e) {
+				e.preventDefault();
+			    project_id = old_project_id()
+			    go_to_next(project_id)
+			}); 
+
+		    $('#deleteProject').click(function(e) {
+		    	e.preventDefault();
+		    	var project_id = old_project_id()
+		    	if (project_id != "") {
+			    	var exists_url = '/api/{{ project_type }}/exists/' + project_id
+			    	var delete_url = "{{ delete_project_api_url}}" + project_id
+
+			        confirmation_msg = "Are you sure you want to delete your project?"
+			        if (window.confirm(confirmation_msg)) {
+			       		debugger
+						$.getJSON(exists_url, function(json){
+						    if (json.exists) {
+						    	// Delete project
+
+	  		    				$.getJSON(delete_url)
+
+	  		    				// Remove mention in dropdown list
+	  		    				$("#project_ids option[value='" + project_id + "']").remove();
+	  		    				$("#project_id_old").val('')
+	  		    				alert('Project: '+ project_id + 'was deleted')
+
+						    } else {
+						    	alert("Project id: " + project_id + " could not be found")
+						    }
+						});
+			        }
+		    	}
+		    });
+
+        */
+
+        </script>
+
+		<style type="text/css">
+			.active {background-color: red; }
+			.event_form_tab {background-color: grey;}
+
+		</style>
+    </head>
+    <body>
+
+
+			<!-- https://stackoverflow.com/questions/6636622/create-element-from-template-element -->
+
+    		<template id='template_event'>
+
+		      <button type="button" class="close remove" aria-label="Close">
+				  <span aria-hidden="true">&times;</span>
+			  </button>
+
+		      <form class='event_form'>
+		      	<table class="table event_form_tab">
+		      		<tbody>
+			      		<tr>
+			      			<td colspan="4" > 
+			      				<input type="url" style="box-sizing: border-box; width: 100%;" name="url" placeholder="URL of public FB event">
+			      			</td>
+			      		</tr>
+			      		<tr>
+			      			<td class="cellClick attending" width="25%" > Attending </td>
+			      			<td class="cellClick maybe" width="25%"> Maybe </td>
+			      			<td class="cellClick interested" width="25%"> Interested </td>
+			      			<td class="cellClick noreply" width="25%"> Just Invited </td>
+	 		      		</tr>
+ 		      		</tbody>
+		      	</table>
+		      </form>
+
+		    </template>
+
+
+
+
+
+
+
+
+
+
+        <div class="jumbotron text-center">
+		  <h1>FB Events compare</h1>
+		  <p>Find common attendees in groups of facebok events</p> 
+		</div>
+
+		<div class="container">
+		  <div class="row">
+
+		  	<!-- GROUP A -->
+		    <div class="col-sm-6">
+		      <h3>Group A</h3>
+		      <p>Define users of group A</p>
+
+		      <div class="user_group" id='a'>
+
+		    </div>
+
+
+		      <div class="row">
+		        <a href="#" class="btn btn-info btn-lg" id='add_event_a'>
+          		  <span class="glyphicon glyphicon-plus-sign"></span> Add event to group A
+        		</a>
+			  </div>
+			
+			</div>
+
+			<!-- GROUP B -->
+		    <div class="col-sm-6">
+		      <h3>Group B</h3>
+		      <p>Define users of group B</p>
+
+		      <div class="user_group" id='b'>
+
+		    </div>
+
+		      <div class="row">
+		        <a href="#" class="btn btn-info btn-lg" id='add_event_b'>
+          		  <span class="glyphicon glyphicon-plus-sign"></span> Add event to group B
+        		</a>
+			  </div>
+			
+			</div>
+
+		</div>
+
+	  <div class="text-center">
+		<div class="col-sm-12">
+			<button type="button" class="btn" id='run'>Go get'em!</button>
+		</div>
+	  </div>
+
+	</div>
+    </body>
+</html>
+
+

@@ -61,7 +61,10 @@ def fetch_data(event_id, status, force=False):
     
     url = TEMPLATE_URL.format(event_id, status)
     while url is not None:
+        print(url)
         res = fetch_url(dir_name, url, force)
+        if 'error' in res:
+            raise Exception('Error fetching data:\n{0}'.format(json.dumps(res)))
         url = res.get('paging', {}).get('next')
         yield res
     
@@ -71,8 +74,6 @@ def fetch(event_id, status, force=False):
     '''
     data = []
     for res in fetch_data(event_id, status, force):
-        if 'error' in res:
-            raise Exception('Error fetching data:\n{0}'.format(json.dumps(res)))
         data.extend(res['data'])
     return data
 
